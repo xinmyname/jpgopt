@@ -26,11 +26,8 @@ type Options() =
                                
     member this.OutputFile with get() = _outputFile
                            and  set v = _outputFile <- v
-                                   
-[<EntryPoint>]
-let main(args:string[]) =
-    printfn "Makes JPEG files a little more managable"
 
+let parseArgs(args:string[]) = 
     let options = new Options()
 
     let optionSet = new OptionSet()
@@ -55,13 +52,46 @@ let main(args:string[]) =
     if String.IsNullOrEmpty(options.OutputFile) then 
         options.OutputFile <- options.InputFile
 
+    options
+
+
+let optimizeJpeg(options : Options) = 
     let image = Image.FromFile(options.InputFile)
 
-    let qualityParam = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, byte options.Quality)
+    let newHeight = (options.Width * image.Height) / image.Width
 
-//    ... and here's where I'm stuck
-//
-//    let jpegEncoder = ImageCodecInfo.GetImageEncoders().Where(<@fun x -> x.FormatID == ImageFormat.Jpeg.Guid@>)
+    let result = new Bitmap(options.Width, newHeight)
 
+    use g = Graphics.FromImage(result)
+    g.CompositingQuality <- Drawing2D.CompositingQuality.HighQuality
+    g.InterpolationMode <- Drawing2D.InterpolationMode.HighQualityBicubic
+    g.SmoothingMode <- Drawing2D.SmoothingMode.HighQuality
+    g.DrawImage(image, 0, 0, options.Width, newHeight)
+
+    image.Dispose()
+
+    result
+
+                             
+let saveJpeg(result : Image, options : Options) =
+    let jpegEncoder = 
+        ImageCodecInfo.GetImageEncoders() 
+        |> Seq.find (fun e -> e.FormatID = ImageFormat.Jpeg.Guid)
+
+    let qualityParam = new EncoderParameter(Encoder.Quality, int64 options.Quality)
+
+    let encoderParams = new EncoderParameters(1)
+    encoderParams.Param.[0] <- qualityParam
+
+    result.Save(options.OutputFile, jpegEncoder, encoderParams)
+                                 
+                                   
+[<EntryPoint>]
+let main(args:string[]) =
+    printfn "Makes JPEG files a little more managable"
+
+    let options = parseArgs(args)
+    let result = optimizeJpeg(options)
+    saveJpeg(result, options)
+    
     0
-
