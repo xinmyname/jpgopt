@@ -1,6 +1,7 @@
 ﻿#light
 
 open System
+open System.Reflection
 open NDesk.Options
 open System.Drawing
 open System.Drawing.Imaging
@@ -84,12 +85,11 @@ let saveJpeg(result : Image, options : Options) =
     encoderParams.Param.[0] <- qualityParam
 
     result.Save(options.OutputFile, jpegEncoder, encoderParams)
-                                 
-                                   
+                                
+
 [<EntryPoint>]
 let main(args:string[]) =
-    printfn "Makes JPEG files a little more managable"
-
+    
     let options = parseArgs(args)
     let result = optimizeJpeg(options)
     saveJpeg(result, options)
